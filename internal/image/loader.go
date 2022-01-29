@@ -38,6 +38,10 @@ func (l *ImageLoader) Load(ctx context.Context, url string, headers http.Header)
 	}
 
 	imgBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
 	img, _, err := image.Decode(bytes.NewReader(imgBytes))
 
 	return img, err

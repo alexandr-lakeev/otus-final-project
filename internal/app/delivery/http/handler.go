@@ -66,8 +66,14 @@ func (h *Handler) Fill(ctx context.Context) http.HandlerFunc {
 		w.Header().Set("Content-Type", "image/jpg")
 		w.WriteHeader(http.StatusOK)
 
-		jpeg.Encode(w, image, &jpeg.Options{
+		err = jpeg.Encode(w, image, &jpeg.Options{
 			Quality: 100,
 		})
+
+		if err != nil {
+			h.logger.Error("handler: " + err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 }

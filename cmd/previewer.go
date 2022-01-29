@@ -20,7 +20,7 @@ import (
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "/etc/calendar/calendar.dev.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "/etc/previewer/config.toml", "Path to configuration file")
 }
 
 func main() {
@@ -35,8 +35,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	ctx := context.Background()
 
 	cache := cache.New()
 	loader := image.NewLoader()
@@ -60,7 +58,7 @@ func main() {
 		}
 	}()
 
-	logger.Info("calendar is running...")
+	logger.Info("previewer is running...")
 
 	if err := server.Start(ctx); err != nil {
 		logger.Error("failed to start http server: " + err.Error())
