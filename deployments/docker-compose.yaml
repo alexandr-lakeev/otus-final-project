@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  previewer:
+    image: previewer:develop
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../.env
+    restart: "on-failure"
+    networks:
+      - previewer
+
+networks:
+  previewer:
+    external:
+      name: previewer
