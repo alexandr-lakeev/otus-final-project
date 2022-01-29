@@ -8,20 +8,27 @@ import (
 )
 
 type UseCase struct {
-	loader app.ImageLoader
-	cache  app.Cache
-	logger app.Logger
+	loader  app.ImageLoader
+	resizer app.ImageResizer
+	cache   app.Cache
+	logger  app.Logger
 }
 
-func New(loader app.ImageLoader, cache app.Cache, logger app.Logger) *UseCase {
+func New(loader app.ImageLoader, resizer app.ImageResizer, cache app.Cache, logger app.Logger) *UseCase {
 	return &UseCase{
-		loader: loader,
-		cache:  cache,
-		logger: logger,
+		loader:  loader,
+		resizer: resizer,
+		cache:   cache,
+		logger:  logger,
 	}
 }
 
 func (u *UseCase) Fill(ctx context.Context, command *app.FillCommand) (image.Image, error) {
-	// TODO resize, cache
-	return u.loader.Load(ctx, command.ImgUrl, command.Headers)
+	// TODO cache
+	img, err := u.loader.Load(ctx, command.ImgUrl, command.Headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return u.resizer.Fill(img, command.Width, command.Height), nil
 }

@@ -40,7 +40,8 @@ func main() {
 
 	cache := cache.New()
 	loader := image.NewLoader()
-	uc := usecase.New(loader, cache, logger)
+	resizer := image.NewResizer()
+	uc := usecase.New(loader, resizer, cache, logger)
 
 	server := internalhttp.NewServer(config.Server, uc, logger)
 
