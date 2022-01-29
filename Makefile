@@ -12,7 +12,7 @@ create-network:
 	docker network create previewer || true
 
 up: create-network
-	docker-compose -f ./deployments/docker-compose.yaml up -d
+	docker-compose -f ./deployments/docker-compose.yaml up
 
 down:
 	docker-compose -f ./deployments/docker-compose.yaml down
