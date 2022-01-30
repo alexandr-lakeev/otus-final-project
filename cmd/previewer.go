@@ -20,7 +20,7 @@ import (
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "/etc/previewer/config.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "/etc/previewer/config.yaml", "Path to configuration file")
 }
 
 func main() {
@@ -36,10 +36,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	cache := cache.New()
-	loader := image.NewLoader()
-	resizer := image.NewResizer()
-	uc := usecase.New(loader, resizer, cache, logger)
+	cache := cache.NewCache(config.Previewer.CacheSize, config.Previewer.CacheDir)
+
+	uc := usecase.New(
+		image.NewLoader(),
+		image.NewResizer(),
+		cache,
+		logger,
+	)
 
 	server := internalhttp.NewServer(config.Server, uc, logger)
 

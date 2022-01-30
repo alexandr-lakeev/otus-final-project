@@ -24,11 +24,22 @@ func New(loader app.ImageLoader, resizer app.ImageResizer, cache app.Cache, logg
 }
 
 func (u *UseCase) Fill(ctx context.Context, command *app.FillCommand) (image.Image, error) {
-	// TODO cache
+	img, ok := u.cache.Get(command.ImgUrl, command.Width, command.Height)
+	if ok {
+		u.logger.Info("got image from cache")
+		return img, nil
+	}
+
 	img, err := u.loader.Load(ctx, command.ImgUrl, command.Headers)
 	if err != nil {
 		return nil, err
 	}
 
-	return u.resizer.Fill(img, command.Width, command.Height), nil
+	u.logger.Info("got image from remote")
+
+	resizedImg := u.resizer.Fill(img, command.Width, command.Height)
+
+	u.cache.Set(command.ImgUrl, command.Width, command.Height, resizedImg)
+
+	return resizedImg, nil
 }

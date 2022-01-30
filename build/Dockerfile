@@ -21,7 +21,7 @@ FROM alpine:3.9
 ENV BIN_FILE "/opt/previewer/previewer-app"
 COPY --from=build ${BIN_FILE} ${BIN_FILE}
 
-ENV CONFIG_FILE /etc/previewer/config.toml
-COPY ./configs/config.toml ${CONFIG_FILE}
+ENV CONFIG_FILE /etc/previewer/config.yaml
+COPY ./configs/config.yaml ${CONFIG_FILE}
 
 CMD sleep 3; ${BIN_FILE} -config ${CONFIG_FILE}
