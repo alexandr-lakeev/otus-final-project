@@ -3,11 +3,13 @@ package cache
 import (
 	"container/list"
 	"crypto/sha1"
-	"encoding/base64"
+	"fmt"
 	"image"
 	"image/jpeg"
+	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/alexandr-lakeev/otus-final-project/internal/app"
@@ -43,17 +45,26 @@ func (c *LruCache) Set(url string, width, height int, img image.Image) {
 	defer c.lock.Unlock()
 
 	key := c.getKey(url, width, height)
-	path := c.dir + "/" + key
+	path, err := c.createPath(c.dir, key)
+	// TODO resolve errors
+	if err != nil {
+		log.Println(err)
+	}
 	listItem, exists := c.items[key]
 
 	if !exists {
 		if c.queue.Len() == c.capacity {
-			lastItem := c.queue.Back()
-			c.queue.Remove(lastItem)
-			delete(c.items, lastItem.Value.(*CacheItem).Key)
+			// TODO resolve errors
+			if err := c.delete(c.queue.Back()); err != nil {
+				log.Println(err)
+			}
 		}
 
-		c.saveToFile(path, img)
+		// TODO resolve errors
+		err := c.saveToFile(path, img)
+		if err != nil {
+			log.Println(err)
+		}
 	} else {
 		c.queue.Remove(listItem)
 	}
@@ -79,6 +90,7 @@ func (c *LruCache) Get(url string, width, height int) (image.Image, bool) {
 		c.queue.MoveToFront(listItem)
 
 		img, err := c.readFromFile(path)
+		// TODO resolve errors
 		if err != nil {
 			return nil, false
 		}
@@ -89,6 +101,15 @@ func (c *LruCache) Get(url string, width, height int) (image.Image, bool) {
 	return nil, false
 }
 
+func (c *LruCache) delete(item *list.Element) error {
+	c.queue.Remove(item)
+
+	cacheItem := item.Value.(*CacheItem)
+	delete(c.items, cacheItem.Key)
+
+	return os.Remove(cacheItem.Path)
+}
+
 func (c *LruCache) getKey(url string, width, height int) string {
 	return c.getHash(url + strconv.Itoa(width) + strconv.Itoa(height))
 }
@@ -96,7 +117,16 @@ func (c *LruCache) getKey(url string, width, height int) string {
 func (i *LruCache) getHash(key string) string {
 	h := sha1.New()
 	h.Write([]byte(key))
-	return base64.URLEncoding.EncodeToString(h.Sum(nil))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func (i *LruCache) createPath(dir, key string) (string, error) {
+	path := dir + "/" + strings.Join(strings.Split(key, ""), "/")
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		return "", err
+	}
+
+	return path + "/" + key, nil
 }
 
 func (c *LruCache) saveToFile(path string, img image.Image) error {

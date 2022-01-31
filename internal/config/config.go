@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/heetch/confita"
@@ -49,8 +48,6 @@ func NewConfig(configFile string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	log.Printf("config: %+v\n\n", cfg)
 
 	return &cfg, nil
 }
