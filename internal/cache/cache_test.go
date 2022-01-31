@@ -47,7 +47,7 @@ func TestCache(t *testing.T) {
 		require.False(t, ok)
 	})
 
-	t.Run("last added is removing", func(t *testing.T) {
+	t.Run("first added is removing", func(t *testing.T) {
 		cache := NewCache(5, os.TempDir())
 
 		cache.Set("www.img.ru/some-img.jpg", 100, 100, img100x100)
