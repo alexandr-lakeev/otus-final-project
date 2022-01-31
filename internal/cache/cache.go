@@ -22,6 +22,7 @@ type LruCache struct {
 }
 
 type CacheItem struct {
+	Key    string
 	Url    string
 	Width  int
 	Height int
@@ -42,25 +43,27 @@ func (c *LruCache) Set(url string, width, height int, img image.Image) {
 	defer c.lock.Unlock()
 
 	key := c.getKey(url, width, height)
+	path := c.dir + "/" + key
 	listItem, exists := c.items[key]
 
 	if !exists {
 		if c.queue.Len() == c.capacity {
-			lastListItem := c.queue.Back()
-			c.queue.Remove(lastListItem)
-			delete(c.items, key)
+			lastItem := c.queue.Back()
+			c.queue.Remove(lastItem)
+			delete(c.items, lastItem.Value.(*CacheItem).Key)
 		}
 
-		c.saveToFile(key, img)
+		c.saveToFile(path, img)
 	} else {
 		c.queue.Remove(listItem)
 	}
 
 	c.items[key] = c.queue.PushFront(&CacheItem{
-		Url:    key,
+		Key:    key,
+		Url:    url,
 		Width:  width,
 		Height: height,
-		Path:   c.dir + "/" + c.getHash(key),
+		Path:   path,
 	})
 }
 
@@ -68,13 +71,11 @@ func (c *LruCache) Get(url string, width, height int) (image.Image, bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	var path string
-
 	key := c.getKey(url, width, height)
 	listItem, exists := c.items[key]
 
 	if exists {
-		path = listItem.Value.(*CacheItem).Path
+		path := listItem.Value.(*CacheItem).Path
 		c.queue.MoveToFront(listItem)
 
 		img, err := c.readFromFile(path)
@@ -89,7 +90,7 @@ func (c *LruCache) Get(url string, width, height int) (image.Image, bool) {
 }
 
 func (c *LruCache) getKey(url string, width, height int) string {
-	return url + strconv.Itoa(width) + strconv.Itoa(height)
+	return c.getHash(url + strconv.Itoa(width) + strconv.Itoa(height))
 }
 
 func (i *LruCache) getHash(key string) string {
@@ -98,8 +99,7 @@ func (i *LruCache) getHash(key string) string {
 	return base64.URLEncoding.EncodeToString(h.Sum(nil))
 }
 
-func (c *LruCache) saveToFile(key string, img image.Image) error {
-	path := c.dir + "/" + c.getHash(key)
+func (c *LruCache) saveToFile(path string, img image.Image) error {
 	file, err := os.Create(path)
 	if err != nil {
 		return err
