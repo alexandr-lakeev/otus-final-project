@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -40,33 +39,31 @@ func NewCache(capacity int, dir string) app.Cache {
 	}
 }
 
-func (c *LruCache) Set(url string, width, height int, img image.Image) {
+func (c *LruCache) Set(url string, width, height int, img image.Image) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	key := c.getKey(url, width, height)
 	path, err := c.createPath(c.dir, key)
-	// TODO resolve errors
 	if err != nil {
-		log.Println(err)
+		return err
 	}
+
 	listItem, exists := c.items[key]
 
 	if !exists {
 		if c.queue.Len() == c.capacity {
-			// TODO resolve errors
 			if err := c.delete(c.queue.Back()); err != nil {
-				log.Println(err)
+				return err
 			}
-		}
-
-		// TODO resolve errors
-		err := c.saveToFile(path, img)
-		if err != nil {
-			log.Println(err)
 		}
 	} else {
 		c.queue.Remove(listItem)
+	}
+
+	err = c.saveToFile(path, img)
+	if err != nil {
+		return err
 	}
 
 	c.items[key] = c.queue.PushFront(&CacheItem{
@@ -76,9 +73,11 @@ func (c *LruCache) Set(url string, width, height int, img image.Image) {
 		Height: height,
 		Path:   path,
 	})
+
+	return nil
 }
 
-func (c *LruCache) Get(url string, width, height int) (image.Image, bool) {
+func (c *LruCache) Get(url string, width, height int) (image.Image, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -90,15 +89,14 @@ func (c *LruCache) Get(url string, width, height int) (image.Image, bool) {
 		c.queue.MoveToFront(listItem)
 
 		img, err := c.readFromFile(path)
-		// TODO resolve errors
 		if err != nil {
-			return nil, false
+			return nil, err
 		}
 
-		return img, true
+		return img, nil
 	}
 
-	return nil, false
+	return nil, app.ErrNotFoundInCache
 }
 
 func (c *LruCache) delete(item *list.Element) error {

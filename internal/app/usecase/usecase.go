@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"image"
 
 	"github.com/alexandr-lakeev/otus-final-project/internal/app"
@@ -24,13 +25,19 @@ func New(loader app.ImageLoader, resizer app.ImageResizer, cache app.Cache, logg
 }
 
 func (u *UseCase) Fill(ctx context.Context, command *app.FillCommand) (image.Image, error) {
-	img, ok := u.cache.Get(command.ImgUrl, command.Width, command.Height)
-	if ok {
+	errNotFound := app.ErrNotFoundInCache
+
+	img, err := u.cache.Get(command.ImgUrl, command.Width, command.Height)
+	if err == nil {
 		u.logger.Info("got image from cache")
 		return img, nil
 	}
 
-	img, err := u.loader.Load(ctx, command.ImgUrl, command.Headers)
+	if !errors.Is(err, errNotFound) {
+		u.logger.Error("cache: get: " + err.Error())
+	}
+
+	img, err = u.loader.Load(ctx, command.ImgUrl, command.Headers)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +46,9 @@ func (u *UseCase) Fill(ctx context.Context, command *app.FillCommand) (image.Ima
 
 	resizedImg := u.resizer.Fill(img, command.Width, command.Height)
 
-	u.cache.Set(command.ImgUrl, command.Width, command.Height, resizedImg)
+	if err := u.cache.Set(command.ImgUrl, command.Width, command.Height, resizedImg); err != nil {
+		u.logger.Error("cache: set: " + err.Error())
+	}
 
 	return resizedImg, nil
 }

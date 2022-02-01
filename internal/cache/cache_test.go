@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/alexandr-lakeev/otus-final-project/internal/app"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,88 +17,115 @@ func TestCache(t *testing.T) {
 	img500x500 := image.NewNRGBA(image.Rect(0, 0, 500, 500))
 	img600x600 := image.NewNRGBA(image.Rect(0, 0, 600, 600))
 
+	errNotFound := app.ErrNotFoundInCache
+
 	t.Run("empty cache", func(t *testing.T) {
 		cache := NewCache(5, os.TempDir())
 
-		_, ok := cache.Get("www.img.ru/some-img.jpg", 100, 100)
+		_, err := cache.Get("www.img.ru/some-img.jpg", 100, 100)
 
-		require.False(t, ok)
+		require.ErrorIs(t, err, errNotFound)
 	})
 
 	t.Run("simple caching", func(t *testing.T) {
 		cache := NewCache(5, os.TempDir())
 
-		cache.Set("www.img.ru/some-img.jpg", 100, 100, img100x100)
-		cache.Set("www.img.ru/some-img.jpg", 200, 200, img200x200)
+		err := cache.Set("www.img.ru/some-img.jpg", 100, 100, img100x100)
+		require.NoError(t, err)
 
-		img100x100Cached, ok := cache.Get("www.img.ru/some-img.jpg", 100, 100)
+		err = cache.Set("www.img.ru/some-img.jpg", 200, 200, img200x200)
+		require.NoError(t, err)
 
-		require.True(t, ok)
+		img100x100Cached, err := cache.Get("www.img.ru/some-img.jpg", 100, 100)
+
+		require.NoError(t, err)
 		require.Equal(t, 100, img100x100Cached.Bounds().Max.X)
 		require.Equal(t, 100, img100x100Cached.Bounds().Max.Y)
 
-		img200x200Cached, ok := cache.Get("www.img.ru/some-img.jpg", 200, 200)
+		img200x200Cached, err := cache.Get("www.img.ru/some-img.jpg", 200, 200)
 
-		require.True(t, ok)
+		require.NoError(t, err)
 		require.Equal(t, 200, img200x200Cached.Bounds().Max.X)
 		require.Equal(t, 200, img200x200Cached.Bounds().Max.Y)
 
-		_, ok = cache.Get("www.img.ru/some-img.jpg", 300, 300)
+		_, err = cache.Get("www.img.ru/some-img.jpg", 300, 300)
 
-		require.False(t, ok)
+		require.ErrorIs(t, err, errNotFound)
 	})
 
 	t.Run("first added is removing", func(t *testing.T) {
 		cache := NewCache(5, os.TempDir())
 
-		cache.Set("www.img.ru/some-img.jpg", 100, 100, img100x100)
-		cache.Set("www.img.ru/some-img.jpg", 200, 200, img200x200)
-		cache.Set("www.img.ru/some-img.jpg", 300, 300, img300x300)
-		cache.Set("www.img.ru/some-img.jpg", 400, 400, img400x400)
-		cache.Set("www.img.ru/some-img.jpg", 500, 500, img500x500)
-		cache.Set("www.img.ru/some-img.jpg", 600, 600, img600x600)
+		err := cache.Set("www.img.ru/some-img.jpg", 100, 100, img100x100)
+		require.NoError(t, err)
 
-		img600x600Cached, ok := cache.Get("www.img.ru/some-img.jpg", 600, 600)
+		err = cache.Set("www.img.ru/some-img.jpg", 200, 200, img200x200)
+		require.NoError(t, err)
 
-		require.True(t, ok)
+		err = cache.Set("www.img.ru/some-img.jpg", 300, 300, img300x300)
+		require.NoError(t, err)
+
+		err = cache.Set("www.img.ru/some-img.jpg", 400, 400, img400x400)
+		require.NoError(t, err)
+
+		err = cache.Set("www.img.ru/some-img.jpg", 500, 500, img500x500)
+		require.NoError(t, err)
+
+		err = cache.Set("www.img.ru/some-img.jpg", 600, 600, img600x600)
+		require.NoError(t, err)
+
+		img600x600Cached, err := cache.Get("www.img.ru/some-img.jpg", 600, 600)
+
+		require.NoError(t, err)
 		require.Equal(t, 600, img600x600Cached.Bounds().Max.X)
 		require.Equal(t, 600, img600x600Cached.Bounds().Max.Y)
 
-		_, ok = cache.Get("www.img.ru/some-img.jpg", 100, 100)
+		_, err = cache.Get("www.img.ru/some-img.jpg", 100, 100)
 
-		require.False(t, ok)
+		require.ErrorIs(t, err, errNotFound)
 	})
 
 	t.Run("first touched is removing", func(t *testing.T) {
 		cache := NewCache(5, os.TempDir())
 
-		cache.Set("www.img.ru/some-img.jpg", 100, 100, img100x100)
-		cache.Set("www.img.ru/some-img.jpg", 200, 200, img200x200)
-		cache.Set("www.img.ru/some-img.jpg", 300, 300, img300x300)
-		cache.Set("www.img.ru/some-img.jpg", 400, 400, img400x400)
-		cache.Set("www.img.ru/some-img.jpg", 500, 500, img500x500)
+		err := cache.Set("www.img.ru/some-img.jpg", 100, 100, img100x100)
+		require.NoError(t, err)
 
-		_, ok := cache.Get("www.img.ru/some-img.jpg", 500, 500)
-		require.True(t, ok)
+		err = cache.Set("www.img.ru/some-img.jpg", 200, 200, img200x200)
+		require.NoError(t, err)
 
-		_, ok = cache.Get("www.img.ru/some-img.jpg", 400, 400)
-		require.True(t, ok)
+		err = cache.Set("www.img.ru/some-img.jpg", 300, 300, img300x300)
+		require.NoError(t, err)
 
-		_, ok = cache.Get("www.img.ru/some-img.jpg", 300, 300)
-		require.True(t, ok)
+		err = cache.Set("www.img.ru/some-img.jpg", 400, 400, img400x400)
+		require.NoError(t, err)
 
-		_, ok = cache.Get("www.img.ru/some-img.jpg", 200, 200)
-		require.True(t, ok)
+		err = cache.Set("www.img.ru/some-img.jpg", 500, 500, img500x500)
+		require.NoError(t, err)
 
-		_, ok = cache.Get("www.img.ru/some-img.jpg", 100, 100)
-		require.True(t, ok)
+		_, err = cache.Get("www.img.ru/some-img.jpg", 500, 500)
+		require.NoError(t, err)
 
-		cache.Set("www.img.ru/some-img.jpg", 600, 600, img600x600)
-		_, ok = cache.Get("www.img.ru/some-img.jpg", 600, 600)
-		require.True(t, ok)
+		_, err = cache.Get("www.img.ru/some-img.jpg", 400, 400)
+		require.NoError(t, err)
 
-		_, ok = cache.Get("www.img.ru/some-img.jpg", 500, 500)
+		_, err = cache.Get("www.img.ru/some-img.jpg", 300, 300)
+		require.NoError(t, err)
 
-		require.False(t, ok)
+		_, err = cache.Get("www.img.ru/some-img.jpg", 200, 200)
+		require.NoError(t, err)
+
+		_, err = cache.Get("www.img.ru/some-img.jpg", 100, 100)
+		require.NoError(t, err)
+
+		err = cache.Set("www.img.ru/some-img.jpg", 600, 600, img600x600)
+		require.NoError(t, err)
+
+		_, err = cache.Get("www.img.ru/some-img.jpg", 600, 600)
+		require.NoError(t, err)
+
+		_, err = cache.Get("www.img.ru/some-img.jpg", 500, 500)
+
+		require.ErrorIs(t, err, errNotFound)
 	})
 }
