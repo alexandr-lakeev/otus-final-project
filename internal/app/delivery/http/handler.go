@@ -58,11 +58,10 @@ func (h *Handler) Fill(ctx context.Context) http.HandlerFunc {
 
 		if err != nil {
 			h.logger.Error("handler: " + err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusBadGateway)
 			return
 		}
 
-		// TODO png
 		w.Header().Set("Content-Type", "image/jpg")
 		w.WriteHeader(http.StatusOK)
 

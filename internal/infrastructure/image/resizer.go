@@ -1,4 +1,4 @@
-package image
+package internalimage
 
 import (
 	"image"

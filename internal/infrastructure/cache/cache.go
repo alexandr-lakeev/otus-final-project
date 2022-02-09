@@ -1,4 +1,4 @@
-package cache
+package internalcache
 
 import (
 	"container/list"

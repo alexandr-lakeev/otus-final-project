@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/alexandr-lakeev/otus-final-project/internal/app/usecase"
-	"github.com/alexandr-lakeev/otus-final-project/internal/cache"
 	"github.com/alexandr-lakeev/otus-final-project/internal/config"
-	"github.com/alexandr-lakeev/otus-final-project/internal/image"
-	"github.com/alexandr-lakeev/otus-final-project/internal/logger"
-	internalhttp "github.com/alexandr-lakeev/otus-final-project/internal/server/http"
+	internalcache "github.com/alexandr-lakeev/otus-final-project/internal/infrastructure/cache"
+	internalimage "github.com/alexandr-lakeev/otus-final-project/internal/infrastructure/image"
+	internalloger "github.com/alexandr-lakeev/otus-final-project/internal/infrastructure/logger"
+	internalhttp "github.com/alexandr-lakeev/otus-final-project/internal/infrastructure/server/http"
 )
 
 var configFile string
@@ -31,16 +31,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger, err := logger.New(config.Logger)
+	logger, err := internalloger.New(config.Logger)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cache := cache.NewCache(config.Previewer.CacheSize, config.Previewer.CacheDir)
+	cache := internalcache.NewCache(config.Previewer.CacheSize, config.Previewer.CacheDir)
 
 	uc := usecase.New(
-		image.NewLoader(),
-		image.NewResizer(),
+		internalimage.NewLoader(),
+		internalimage.NewResizer(),
 		cache,
 		logger,
 	)
