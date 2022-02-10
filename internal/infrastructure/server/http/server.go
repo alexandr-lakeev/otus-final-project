@@ -13,6 +13,7 @@ import (
 
 type Server struct {
 	server  *http.Server
+	router  *mux.Router
 	usecase app.UseCase
 	logg    app.Logger
 }
@@ -34,6 +35,7 @@ func NewServer(cfg config.ServerConf, usecase app.UseCase, logger app.Logger) *S
 		},
 		logg:    logger,
 		usecase: usecase,
+		router:  router,
 	}
 }
 
@@ -41,6 +43,11 @@ func (s *Server) Start(ctx context.Context) error {
 	s.logg.Info(fmt.Sprintf("server is starting on %s", s.server.Addr))
 
 	return s.server.ListenAndServe()
+}
+
+// for tests
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.router.ServeHTTP(w, r)
 }
 
 func (s *Server) Stop(ctx context.Context) error {
