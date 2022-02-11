@@ -8,7 +8,11 @@ import (
 	"strings"
 
 	"github.com/alexandr-lakeev/otus-final-project/internal/app"
+	"github.com/pkg/errors"
 )
+
+const UrlPartsQuantityBeforeImgPath = 5
+const ImageQualityPercent = 100
 
 type Handler struct {
 	useCase app.UseCase
@@ -24,9 +28,9 @@ func NewHandler(useCase app.UseCase, logger app.Logger) *Handler {
 
 func (h *Handler) Fill(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parts := strings.SplitN(r.URL.Path, "/", 5)
+		parts := strings.SplitN(r.URL.Path, "/", UrlPartsQuantityBeforeImgPath)
 
-		if len(parts) < 5 {
+		if len(parts) < UrlPartsQuantityBeforeImgPath {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -50,14 +54,14 @@ func (h *Handler) Fill(ctx context.Context) http.HandlerFunc {
 		}
 
 		image, err := h.useCase.Fill(ctx, &app.FillCommand{
-			ImgUrl:  url,
+			ImgUrl:  "//" + url, // to prevent error if target is ip address + port https://github.com/golang/go/issues/19297#issuecomment-282650053
 			Width:   width,
 			Height:  height,
 			Headers: r.Header,
 		})
 
 		if err != nil {
-			h.logger.Error("handler: " + err.Error())
+			h.logger.Error(errors.Wrap(err, "fill error").Error())
 			w.WriteHeader(http.StatusBadGateway)
 			return
 		}
@@ -66,11 +70,11 @@ func (h *Handler) Fill(ctx context.Context) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 
 		err = jpeg.Encode(w, image, &jpeg.Options{
-			Quality: 100,
+			Quality: ImageQualityPercent,
 		})
 
 		if err != nil {
-			h.logger.Error("handler: " + err.Error())
+			h.logger.Error(errors.Wrap(err, "jpeg encode error").Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

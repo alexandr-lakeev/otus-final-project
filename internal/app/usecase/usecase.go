@@ -2,8 +2,9 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"image"
+
+	"github.com/pkg/errors"
 
 	"github.com/alexandr-lakeev/otus-final-project/internal/app"
 )
@@ -34,7 +35,7 @@ func (u *UseCase) Fill(ctx context.Context, command *app.FillCommand) (image.Ima
 	}
 
 	if !errors.Is(err, errNotFound) {
-		u.logger.Error("cache: get: " + err.Error())
+		u.logger.Error(errors.Wrap(err, "cache read error").Error())
 	}
 
 	img, err = u.loader.Load(ctx, command.ImgUrl, command.Headers)
@@ -47,7 +48,7 @@ func (u *UseCase) Fill(ctx context.Context, command *app.FillCommand) (image.Ima
 	resizedImg := u.resizer.Fill(img, command.Width, command.Height)
 
 	if err := u.cache.Set(command.ImgUrl, command.Width, command.Height, resizedImg); err != nil {
-		u.logger.Error("cache: set: " + err.Error())
+		u.logger.Error(errors.Wrap(err, "cache set error").Error())
 	}
 
 	return resizedImg, nil

@@ -20,7 +20,7 @@
 
 ```
 make build-docker
-make up
+make run
 ```
 
 ### Запуск тестов

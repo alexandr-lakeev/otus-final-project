@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/jpeg"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -119,12 +120,14 @@ func (i *LruCache) getHash(key string) string {
 }
 
 func (i *LruCache) createPath(dir, key string) (string, error) {
-	path := dir + "/" + strings.Join(strings.Split(key, ""), "/")
+	pathParts := append([]string{dir}, strings.Split(key, "")...)
+	path := filepath.Join(pathParts...)
+
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return "", err
 	}
 
-	return path + "/" + key, nil
+	return filepath.Join(path, key), nil
 }
 
 func (c *LruCache) saveToFile(path string, img image.Image) error {

@@ -9,8 +9,10 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/alexandr-lakeev/otus-final-project/internal/app"
 	"github.com/alexandr-lakeev/otus-final-project/internal/app/usecase"
@@ -21,14 +23,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createServer() *Server {
+func createServer() *http.Server {
 	logger, err := internallogger.New(config.LoggerConf{Env: "test", Level: "INFO"})
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	httpClient := &http.Client{
+		Timeout: time.Second,
+	}
+
 	usecase := usecase.New(
-		internalimage.NewLoader(),
+		internalimage.NewLoader(httpClient),
 		internalimage.NewResizer(),
 		internalcache.NewCache(10, os.TempDir()),
 		logger,
@@ -45,6 +51,7 @@ func createImageFakeServer() *httptest.Server {
 			err := jpeg.Encode(w, image.NewRGBA(image.Rect(0, 0, 200, 200)), &jpeg.Options{Quality: 100})
 			if err != nil {
 				w.WriteHeader(500)
+				return
 			}
 			w.WriteHeader(200)
 			return
@@ -59,12 +66,18 @@ func TestServer(t *testing.T) {
 		imgServer := createImageFakeServer()
 		defer imgServer.Close()
 
-		imageReqUrl := url.QueryEscape(strings.Replace(imgServer.URL, "http://", "", 1)) + "/img/success/200x200"
+		reqUrl := path.Join(
+			"/fill/100/100",
+			url.QueryEscape(strings.Replace(imgServer.URL, "http://", "", 1)),
+			"/img/success/200x200",
+		)
+
+		log.Println(reqUrl)
 
 		rec := httptest.NewRecorder()
-		req, _ := http.NewRequest(http.MethodGet, "/fill/100/100/"+imageReqUrl, nil)
+		req, _ := http.NewRequest(http.MethodGet, reqUrl, nil)
 
-		createServer().ServeHTTP(rec, req)
+		createServer().Handler.ServeHTTP(rec, req)
 
 		require.Equal(t, http.StatusOK, rec.Result().StatusCode)
 
@@ -80,7 +93,7 @@ func TestServer(t *testing.T) {
 
 	t.Run("image not found", func(t *testing.T) {
 		var err error
-		stdout := os.TempDir() + "/stdout"
+		stdout := path.Join(os.TempDir(), "/stdout")
 
 		os.Stdout, err = os.Create(stdout)
 		if err != nil {
@@ -90,12 +103,16 @@ func TestServer(t *testing.T) {
 		imgServer := createImageFakeServer()
 		defer imgServer.Close()
 
-		imageReqUrl := url.QueryEscape(strings.Replace(imgServer.URL, "http://", "", 1)) + "/img/not-found"
+		reqUrl := path.Join(
+			"/fill/100/100",
+			url.QueryEscape(strings.Replace(imgServer.URL, "http://", "", 1)),
+			"/img/not-found",
+		)
 
 		rec := httptest.NewRecorder()
-		req, _ := http.NewRequest(http.MethodGet, "/fill/100/100/"+imageReqUrl, nil)
+		req, _ := http.NewRequest(http.MethodGet, reqUrl, nil)
 
-		createServer().ServeHTTP(rec, req)
+		createServer().Handler.ServeHTTP(rec, req)
 
 		require.Equal(t, http.StatusBadGateway, rec.Result().StatusCode)
 

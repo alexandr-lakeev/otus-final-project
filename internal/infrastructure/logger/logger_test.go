@@ -3,6 +3,7 @@ package internallogger
 import (
 	"bufio"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/alexandr-lakeev/otus-final-project/internal/config"
@@ -33,7 +34,7 @@ func TestLogger(t *testing.T) {
 		for _, tc := range tests {
 			tc := tc
 			t.Run(tc.level, func(t *testing.T) {
-				stdout := os.TempDir() + "/stdout"
+				stdout := path.Join(os.TempDir(), "/stdout")
 
 				os.Stdout, _ = os.Create(stdout)
 

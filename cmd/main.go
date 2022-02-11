@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -38,8 +39,12 @@ func main() {
 
 	cache := internalcache.NewCache(config.Previewer.CacheSize, config.Previewer.CacheDir)
 
+	httpClient := &http.Client{
+		Timeout: config.Previewer.RequestTimeout,
+	}
+
 	uc := usecase.New(
-		internalimage.NewLoader(),
+		internalimage.NewLoader(httpClient),
 		internalimage.NewResizer(),
 		cache,
 		logger,
@@ -57,14 +62,14 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 
-		if err := server.Stop(ctx); err != nil {
+		if err := server.Shutdown(ctx); err != nil {
 			logger.Error("failed to stop http server: " + err.Error())
 		}
 	}()
 
 	logger.Info("previewer is running...")
 
-	if err := server.Start(ctx); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		logger.Error("failed to start http server: " + err.Error())
 		cancel()
 		os.Exit(1)

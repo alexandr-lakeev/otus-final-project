@@ -24,8 +24,9 @@ type (
 	}
 
 	PreviewerConf struct {
-		CacheSize int    `yaml:"cache_size" config:"cache_size"`
-		CacheDir  string `yaml:"cache_dir" config:"cache_dir"`
+		RequestTimeout time.Duration `yaml:"request_timeout" config:"request_timeout"`
+		CacheSize      int           `yaml:"cache_size" config:"cache_size"`
+		CacheDir       string        `yaml:"cache_dir" config:"cache_dir"`
 	}
 
 	LoggerConf struct {
@@ -41,11 +42,10 @@ func NewConfig(configFile string) (*Config, error) {
 		},
 	}
 
-	err := confita.NewLoader(
+	if err := confita.NewLoader(
 		env.NewBackend(),
 		file.NewBackend(configFile),
-	).Load(context.Background(), &cfg)
-	if err != nil {
+	).Load(context.Background(), &cfg); err != nil {
 		return nil, err
 	}
 

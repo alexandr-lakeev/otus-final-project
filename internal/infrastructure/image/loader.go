@@ -6,38 +6,43 @@ import (
 	"image"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
-	"time"
 
 	"github.com/alexandr-lakeev/otus-final-project/internal/app"
 )
 
 var statusCodeToError = map[int]error{
-	400: app.ErrBadRequest,
-	404: app.ErrImageNotFound,
-	500: app.ErrInternal,
+	http.StatusBadRequest:          app.ErrBadRequest,
+	http.StatusNotFound:            app.ErrImageNotFound,
+	http.StatusInternalServerError: app.ErrInternal,
 	// TODO add more if needed
 }
 
 type ImageLoader struct {
+	client *http.Client
 }
 
-func NewLoader() *ImageLoader {
-	return &ImageLoader{}
+func NewLoader(client *http.Client) *ImageLoader {
+	return &ImageLoader{
+		client: client,
+	}
 }
 
-func (l *ImageLoader) Load(ctx context.Context, url string, headers http.Header) (image.Image, error) {
-	req, err := http.NewRequest("GET", "http://"+url, nil)
+func (l *ImageLoader) Load(ctx context.Context, uri string, headers http.Header) (image.Image, error) {
+	parsedUrl, err := url.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedUrl.Scheme = "http"
+	req, err := http.NewRequestWithContext(ctx, "GET", parsedUrl.String(), nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header = headers
 
-	client := http.Client{
-		Timeout: 1 * time.Second,
-	}
-
-	response, err := client.Do(req)
+	response, err := l.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +71,7 @@ func (l *ImageLoader) isImage(body []byte) bool {
 }
 
 func (l *ImageLoader) resolveStatusCode(statusCode int) error {
-	if statusCode == 200 {
+	if statusCode == http.StatusOK {
 		return nil
 	}
 

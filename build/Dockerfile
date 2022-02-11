@@ -14,7 +14,7 @@ COPY . ${CODE_DIR}
 ARG LDFLAGS
 RUN CGO_ENABLED=0 go build \
         -ldflags "$LDFLAGS" \
-        -o ${BIN_FILE} cmd/previewer*
+        -o ${BIN_FILE} cmd/main*
 
 FROM alpine:3.9
 
