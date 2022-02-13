@@ -8,7 +8,7 @@ services:
     env_file:
       - ../.env
     volumes:
-      - ../cache:/etc/previewer/cache:rw
+      - previewer_cache:/etc/previewer/cache:rw
     restart: "on-failure"
     networks:
       - previewer
